@@ -1,8 +1,8 @@
 {
   "name": "ad-app",
-  "version": "1.0.14",
+  "version": "1.0.0",
   "bin": {
-    "adep": "bin/index.js"
+    "ad-app": "bin/index.js"
   },
   "keywords": [],
   "author": "",
