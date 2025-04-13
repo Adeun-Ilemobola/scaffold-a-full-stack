@@ -1,0 +1,14 @@
+{
+  "name": "ad-app",
+  "version": "1.0.14",
+  "bin": {
+    "adep": "bin/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "My custom scaffolding CLI for a Node/TypeScript/Express project",
+  "dependencies": {
+    "commander": "^13.1.0"
+  }
+}
