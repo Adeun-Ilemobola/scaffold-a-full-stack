@@ -162,13 +162,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(morgan('dev'));
 
-app.get('/', (_: Request, res: Response) => {
+app.get('/', (req: Request, res: Response) => {
   res.send('Hello from Express + TypeScript scaffold!');
 });
 
 app.listen(port, () => {
-  console.log(\`Server is running on http://localhost:\${port}\`);
-});`);
+  console.log(\`Server is running on http://localhost:${port}\`);
+});
+`
+);
 
   // 5. nodemon
   writeFileSync('nodemon.json', `{
