@@ -1,270 +1,208 @@
 #!/usr/bin/env node
+import { program } from 'commander';
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
-const { program } = require('commander');
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+/* ───────────────────────── helpers ───────────────────────── */
 
-/**
- * Create the client application using create-react-router
- */
+const run = (cmd, cwd = process.cwd()) =>
+  execSync(cmd, { cwd, stdio: 'inherit' });
+
+const { readFileSync, writeFileSync, mkdirSync, existsSync } = fs;
+
+/* ─────────────────────── client scaffold ─────────────────── */
+
 function createClient() {
-  console.log('🚀 Creating React client with Vite and React Router...');
-  try {
-    execSync('npx create-react-router@latest client', { stdio: 'inherit' });
-  } catch (err) {
-    console.error('Error creating the client app:', err);
-    process.exit(1);
-  }
+  const app = 'client';
+  console.log('🚀  Scaffolding Vite + React-TS client …');
+
+  // 1 — Vite skeleton (non-interactive)
+  run(`npm create vite@latest ${app} -- --template react-ts`);
+
+  const root = path.join(process.cwd(), app);
+
+  // 2 — React Router (types already included)
+  run('npm i react-router-dom@latest', root);
+
+  // 3 — patch package.json
+  const pkgFile = path.join(root, 'package.json');
+  const pkg = JSON.parse(readFileSync(pkgFile, 'utf8'));
+  pkg.dependencies['react-router-dom'] = '^6';
+  writeFileSync(pkgFile, JSON.stringify(pkg, null, 2));
+
+  // 4 — src structure
+  ['components', 'routes'].forEach(dir =>
+    mkdirSync(path.join(root, 'src', dir), { recursive: true })
+  );
+
+  // 5 — boiler-plate files
+  const write = (rel, txt) =>
+    writeFileSync(path.join(root, 'src', rel), txt);
+
+  write('main.tsx', `import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <BrowserRouter><App/></BrowserRouter>
+  </React.StrictMode>
+);`);
+
+  write('App.tsx', `import { Routes, Route, Navigate } from 'react-router-dom';
+import Home from './routes/Home';
+import About from './routes/About';
+import NotFound from './routes/NotFound';
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/about/*" element={<About />} />
+      <Route path="/home" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}`);
+
+  write('routes/Home.tsx', 'export default () => <h1>Home</h1>;');
+  write('routes/About.tsx', `import { Outlet, Link } from 'react-router-dom';
+export default () => <>
+  <h1>About</h1>
+  <nav><Link to="services">Services</Link> | <Link to="history">History</Link></nav>
+  <Outlet/>
+</>;`);
+  write('routes/NotFound.tsx', `import { useLocation } from 'react-router-dom';
+export default () => {
+  const { pathname } = useLocation();
+  return <p>No match for “{pathname}”.</p>;
+};`);
 }
 
-/**
- * Scaffold the Express server with TypeScript.
- */
-function createServer() {
-  console.log('🚀 Creating Express server with TypeScript...');
-  const serverPath = path.join(process.cwd(), 'server');
+/* ─────────────────────── server scaffold ─────────────────── */
 
-  if (fs.existsSync(serverPath)) {
-    console.error('Error: Folder "server" already exists.');
-    process.exit(1);
+function createServer() {
+  console.log('🚀  Creating Express server …');
+  const serverPath = path.join(process.cwd(), 'server');
+  if (existsSync(serverPath)) {
+    console.error('Error: "server" already exists'); process.exit(1);
   }
-  fs.mkdirSync(serverPath);
+  mkdirSync(serverPath);
   process.chdir(serverPath);
 
-  // 1. Initialize package.json for server
-  console.log('Initializing server package.json...');
-  try {
-    execSync('npm init -y', { stdio: 'inherit' });
-  } catch (err) {
-    console.error('Error running npm init -y in server:', err);
-    process.exit(1);
-  }
+  // package.json
+  run('npm init -y', serverPath);
+  const pkgFile = path.join(serverPath, 'package.json');
+  const pkg = JSON.parse(readFileSync(pkgFile, 'utf8'));
 
-  // 2. Update package.json with server dependencies and scripts
-  console.log('Updating server package.json...');
-  const serverPackageJsonPath = path.join(process.cwd(), 'package.json');
-  let serverPackage = JSON.parse(fs.readFileSync(serverPackageJsonPath, 'utf8'));
-  
-  serverPackage.dependencies = {
-    "express": "5.0.1",
-    "cors": "*",
-    "morgan": "*",
-    "dotenv": "*",
-    "mongoose": "*",
-    "ejs": "*"
+  pkg.dependencies = {
+    express: '^4.19.2',
+    cors: '^2',
+    morgan: '^1',
+    dotenv: '^16',
+    mongoose: '^8',
+    ejs: '^3'
   };
-
-  serverPackage.devDependencies = {
-    "typescript": "*",
-    "@types/node": "*",
-    "@types/express": "*",
-    "@types/cors": "*",
-    "@types/morgan": "*",
-    "@types/ejs": "*",
-    "nodemon": "*",
-    "ts-node": "*"
+  pkg.devDependencies = {
+    typescript: '^5',
+    '@types/node': '^20',
+    '@types/express': '^4',
+    '@types/cors': '^2',
+    '@types/morgan': '^1',
+    '@types/ejs': '^3',
+    nodemon: '^3',
+    'ts-node': '^10'
   };
-
-  serverPackage.scripts = {
-    "build": "tsc",
-    "start": "npm run build && node dist/index.js",
-    "dev": "nodemon --watch src/**/*.ts --exec \"npx ts-node src/index.ts\""
+  pkg.scripts = {
+    build: 'tsc',
+    start: 'node dist/index.js',
+    dev: 'nodemon'
   };
+  writeFileSync(pkgFile, JSON.stringify(pkg, null, 2));
 
-  fs.writeFileSync(serverPackageJsonPath, JSON.stringify(serverPackage, null, 2));
-
-  // 3. Create tsconfig.json
-  console.log('Creating tsconfig.json for server...');
-  const tsConfigContent = `{
+  // tsconfig
+  writeFileSync('tsconfig.json', `{
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "rootDir": "./src",
-    "outDir": "./dist",
+    "rootDir": "src",
+    "outDir": "dist",
     "strict": true,
     "esModuleInterop": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
-}
-`;
-  fs.writeFileSync(path.join(process.cwd(), 'tsconfig.json'), tsConfigContent);
+  }
+}`);
 
-  // 4. Create src directory and index.ts
-  console.log('Creating source files for server...');
-  const srcDir = path.join(process.cwd(), 'src');
-  fs.mkdirSync(srcDir);
-  const indexTsContent = `import express, { Request, Response } from 'express';
-import cors from 'cors';
-import morgan from 'morgan';
-import mongoose from 'mongoose';
+  // src/index.ts
+  mkdirSync('src');
+  writeFileSync('src/index.ts', `import express from 'express';
+import cors from 'cors'; import morgan from 'morgan';
+const app = express(); const port = 3000;
+app.use(express.json(), cors(), morgan('dev'));
+app.get('/', (_, res) => res.send('Hello World'));
+app.listen(port, () => console.log('API on http://localhost:' + port));
+`);
 
-const app = express();
-const port = 3000;
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(morgan('dev'));
-
-// Routes
-app.get('/', (req: Request, res: Response) => {
-  res.send('Hello from Express + TypeScript scaffold!');
-});
-
-app.listen(port, () => {
-  console.log(\`Server is running on http://localhost:\${port}\`);
-});
-`;
-  fs.writeFileSync(path.join(srcDir, 'index.ts'), indexTsContent);
-
-  // 5. Create nodemon.json
-  console.log('Creating nodemon configuration for server...');
-  const nodemonContent = `{
+  // nodemon.json
+  writeFileSync('nodemon.json', `{
   "watch": ["src"],
   "ext": "ts",
-  "ignore": ["src/**/*.spec.ts"],
-  "exec": "npx ts-node ./src/index.ts"
-}
-`;
-  fs.writeFileSync(path.join(process.cwd(), 'nodemon.json'), nodemonContent);
-
-  // Move back to the root project directory
+  "exec": "npx ts-node src/index.ts"
+}`);
   process.chdir('..');
-  console.log('✅ Express server setup complete!');
+  console.log('✅  Express server ready');
 }
 
-/**
- * Create the root package.json for the overall project.
- */
-function createRootPackage(projectName, projectPath) {
-  console.log('🚀 Creating root package.json...');
-  const rootPackage = {
+/* ────────────────────── mono-repo scaffold ───────────────── */
+
+function createRootPackage(projectName, root) {
+  writeFileSync(path.join(root, 'package.json'), JSON.stringify({
     name: projectName,
-    version: "1.0.0",
-    description: "",
+    private: true,
     scripts: {
-      start: "concurrently \"npm run server\" \"npm run client\"",
-      server: "cd server && npm start",
-      client: "cd client && npm run dev"
+      preinstall: 'npm install --prefix server && npm install --prefix client',
+      start: 'concurrently "npm run dev -w client" "npm start -w server"'
     },
-    keywords: [],
-    author: "",
-    license: "ISC",
-    type: "commonjs",
-    dependencies: {
-      concurrently: "^9.1.2"
-    }
-  };
-
-  const rootPackagePath = path.join(projectPath, 'package.json');
-  fs.writeFileSync(rootPackagePath, JSON.stringify(rootPackage, null, 2));
+    devDependencies: { concurrently: '^9' }
+  }, null, 2));
 }
 
-/**
- * Create README.md with instructions.
- */
-function createReadme(projectName, projectPath) {
-  console.log('🚀 Creating README.md with usage instructions...');
-  const readmeContent = `# ${projectName}
+function createReadme(projectName, root) {
+  writeFileSync(path.join(root, 'README.md'), `# ${projectName}
 
-This project contains two applications:
+Run everything:
 
-- **client:** A React application scaffolded with Vite and React Router.
-- **server:** An Express server written in TypeScript.
-
-## Available Scripts
-
-In the root directory, you can run:
-
-### \`npm start\`
-Runs both the client and server concurrently using [concurrently](https://www.npmjs.com/package/concurrently).
-
-### \`npm run client\`
-Starts the React development server.
-
-### \`npm run server\`
-Starts the Express server.
-
-## Setup
-
-1. Navigate to the project folder:
-   \`\`\`bash
-   cd ${projectName}
-   \`\`\`
-
-2. Install all dependencies:
-   \`\`\`bash
-   npm install
-   \`\`\`
-
-3. To start development servers, run:
-   \`\`\`bash
-   npm start
-   \`\`\`
-
-## Additional Configuration
-
-- The **client** was generated using \`npx create-react-router@latest client\`.
-- The **server** setup includes an Express server configured to work with TypeScript. Modify \`src/index.ts\` for custom routes or middleware.
-`;
-  fs.writeFileSync(path.join(projectPath, 'README.md'), readmeContent);
+\`\`\`bash
+npm install          # installs root + both workspaces
+npm start            # client + server concurrently
+\`\`\`
+`);
 }
 
-/**
- * Main function to create the full-stack project
- */
-function createProject(projectName) {
-  const projectPath = path.join(process.cwd(), projectName);
+function createProject(name) {
+  const root = path.join(process.cwd(), name);
+  if (existsSync(root)) { console.error('Folder exists'); process.exit(1);}
+  mkdirSync(root); process.chdir(root);
 
-  // 1) Check if project folder exists
-  if (fs.existsSync(projectPath)) {
-    console.error(`Error: Folder "${projectName}" already exists in this directory.`);
-    process.exit(1);
-  }
-
-  // 2) Create project folder
-  try {
-    fs.mkdirSync(projectPath);
-  } catch (err) {
-    console.error(`Error creating folder "${projectName}":`, err);
-    process.exit(1);
-  }
-
-  // 3) Navigate into project folder
-  process.chdir(projectPath);
-  console.log(`\nCreated project folder: ${projectPath}\n`);
-
-  // 4) Create Client using npx command
   createClient();
-
-  // 5) Create Express Server
   createServer();
+  createRootPackage(name, root);
+  createReadme(name, root);
 
-  // 6) Create the root package.json and README.md
-  createRootPackage(projectName, projectPath);
-  createReadme(projectName, projectPath);
-
-  console.log('\n✅ Full-stack project setup complete!\n');
-  console.log(`Next steps:
-  1) Navigate to your new project: cd ${projectName}
-  2) Run "npm install" to install root dependencies.
-  3) Then, in each subfolder ("client" and "server"), run "npm install" if needed.
-  4) Run "npm start" to launch both client and server concurrently.
-  `);
+  console.log(`\n✅  Project “${name}” ready - cd ${name} && npm install`);
 }
+
+/* ──────────────────────── CLI wiring ────────────────────── */
 
 program
   .name('ad-app')
-  .description('CLI to scaffold a full-stack project with a React client (Vite/React Router) and an Express server (TypeScript).')
-  .version('2.0.0');
+  .version('2.0.0')
+  .description('Scaffold React (Vite + Router) + Express/TS mono-repo');
 
 program
   .command('new <project-name>')
-  .description('Create a new full-stack project.')
-  .action((projectName) => {
-    createProject(projectName);
-  });
+  .action(createProject);
 
-program.parse(process.argv);
+program.parse();
