@@ -1,6 +1,6 @@
 {
   "name": "ad-app",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "bin": {
     "ad-app": "bin/index.js"
   },
