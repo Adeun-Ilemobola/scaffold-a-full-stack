@@ -149,7 +149,8 @@ function createServer() {
 
   // 4. source stub
   mkdirSync('src');
-  writeFileSync('src/index.ts', String.raw`import express, { Request, Response } from 'express';
+  const tsStub = `
+import express, { Request, Response } from 'express';
 import cors    from 'cors';
 import morgan  from 'morgan';
 import mongoose from 'mongoose';
@@ -167,10 +168,12 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.listen(port, () => {
-  console.log(\`Server is running on http://localhost:${port}\`);
+  console.log(\`Server is running on http://localhost:\${port}\`);
 });
-`
-);
+`;
+
+writeFileSync('src/index.ts', tsStub);
+
 
   // 5. nodemon
   writeFileSync('nodemon.json', `{
