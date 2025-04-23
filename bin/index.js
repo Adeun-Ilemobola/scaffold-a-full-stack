@@ -84,76 +84,114 @@ export default () => {
 
 /* ─────────────────────── server scaffold ─────────────────── */
 
+/**
+ * Scaffold the Express server with TypeScript — ORIGINAL VERSION
+ */
 function createServer() {
-  console.log('🚀  Creating Express server …');
+  console.log('🚀 Creating Express server with TypeScript...');
   const serverPath = path.join(process.cwd(), 'server');
-  if (existsSync(serverPath)) {
-    console.error('Error: "server" already exists'); process.exit(1);
+
+  if (fs.existsSync(serverPath)) {
+    console.error('Error: Folder "server" already exists.');
+    process.exit(1);
   }
-  mkdirSync(serverPath);
+  fs.mkdirSync(serverPath);
   process.chdir(serverPath);
 
-  // package.json
-  run('npm init -y', serverPath);
-  const pkgFile = path.join(serverPath, 'package.json');
-  const pkg = JSON.parse(readFileSync(pkgFile, 'utf8'));
+  /* 1. init package.json */
+  run('npm init -y');
+
+  /* 2. add deps (wild-card + Express 5 beta) */
+  const pkgPath = path.join(process.cwd(), 'package.json');
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 
   pkg.dependencies = {
-    express: '^4.19.2',
-    cors: '^2',
-    morgan: '^1',
-    dotenv: '^16',
-    mongoose: '^8',
-    ejs: '^3'
+    express: '5.0.1',
+    cors: '*',
+    morgan: '*',
+    dotenv: '*',
+    mongoose: '*',
+    ejs: '*'
   };
+
   pkg.devDependencies = {
-    typescript: '^5',
-    '@types/node': '^20',
-    '@types/express': '^4',
-    '@types/cors': '^2',
-    '@types/morgan': '^1',
-    '@types/ejs': '^3',
-    nodemon: '^3',
-    'ts-node': '^10'
+    typescript: '*',
+    '@types/node': '*',
+    '@types/express': '*',
+    '@types/cors': '*',
+    '@types/morgan': '*',
+    '@types/ejs': '*',
+    nodemon: '*',
+    'ts-node': '*'
   };
+
   pkg.scripts = {
     build: 'tsc',
-    start: 'node dist/index.js',
-    dev: 'nodemon'
+    start: 'npm run build && node dist/index.js',
+    dev: 'nodemon --watch src/**/*.ts --exec "npx ts-node src/index.ts"'
   };
-  writeFileSync(pkgFile, JSON.stringify(pkg, null, 2));
 
-  // tsconfig
-  writeFileSync('tsconfig.json', `{
+  fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+
+  /* 3. tsconfig.json */
+  fs.writeFileSync(
+    'tsconfig.json',
+    `{
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "rootDir": "src",
-    "outDir": "dist",
+    "rootDir": "./src",
+    "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true
-  }
-}`);
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}`
+  );
 
-  // src/index.ts
-  mkdirSync('src');
-  writeFileSync('src/index.ts', `import express from 'express';
-import cors from 'cors'; import morgan from 'morgan';
-const app = express(); const port = 3000;
-app.use(express.json(), cors(), morgan('dev'));
-app.get('/', (_, res) => res.send('Hello World'));
-app.listen(port, () => console.log('API on http://localhost:' + port));
-`);
+  /* 4. src/index.ts */
+  fs.mkdirSync('src');
+  fs.writeFileSync(
+    'src/index.ts',
+    `import express, { Request, Response } from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import mongoose from 'mongoose';
 
-  // nodemon.json
-  writeFileSync('nodemon.json', `{
+const app = express();
+const port = 3000;
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(morgan('dev'));
+
+app.get('/', (_: Request, res: Response) => {
+  res.send('Hello from Express + TypeScript scaffold!');
+});
+
+app.listen(port, () => {
+  console.log(\`Server is running on http://localhost:\${port}\`);
+});
+`
+  );
+
+  /* 5. nodemon.json */
+  fs.writeFileSync(
+    'nodemon.json',
+    `{
   "watch": ["src"],
   "ext": "ts",
-  "exec": "npx ts-node src/index.ts"
-}`);
+  "ignore": ["src/**/*.spec.ts"],
+  "exec": "npx ts-node ./src/index.ts"
+}`
+  );
+
   process.chdir('..');
-  console.log('✅  Express server ready');
+  console.log('✅ Express server setup complete!');
 }
+
 
 /* ────────────────────── mono-repo scaffold ───────────────── */
 
