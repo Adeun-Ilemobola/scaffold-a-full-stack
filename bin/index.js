@@ -23,12 +23,17 @@ function createClient() {
   const root = path.join(process.cwd(), app);
 
   // 2 — React Router
-  run('npm i react-router-dom@latest', root);
+  run('npm i react-router-dom@latest axios@latest bootstrap@latest react-icons@latest', root);
 
-  // 3 — patch package.json (idempotent but explicit)
-  const pkgFile = path.join(root, 'package.json');
-  const pkg = JSON.parse(readFileSync(pkgFile, 'utf8'));
-  pkg.dependencies['react-router-dom'] = '^6';
+// 3—Patch package.json (idempotent but explicit)
+const pkgFile = path.join(root, 'package.json');
+const pkg = JSON.parse(readFileSync(pkgFile, 'utf8'));
+
+// Explicitly set versions
+pkg.dependencies['react-router-dom'] = '^6';
+pkg.dependencies['axios'] = '^1';
+pkg.dependencies['bootstrap'] = '^5';
+pkg.dependencies['react-icons'] = '^4';
   writeFileSync(pkgFile, JSON.stringify(pkg, null, 2));
 
   // 4 — src structure
@@ -123,7 +128,7 @@ function createServer() {
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
 
   pkg.dependencies = {
-    express: '5.0.1',
+    express: '5.1.0',
     cors: '*',
     morgan: '*',
     dotenv: '*',
@@ -174,6 +179,16 @@ import mongoose from 'mongoose';
 
 const app  = express();
 const port = 3000;
+//connect to the db
+const main = async ()=>{
+    try{
+        await mongoose.connect(uri);
+        console.log('database conencted');
+    }
+    catch(err){
+        console.log(\`ERROR in conencting: ${err}\`)
+    }
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
