@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { program }   from 'commander';
-import fs            from 'fs';
-import path          from 'path';
-import { execSync }  from 'child_process';
+import { program } from 'commander';
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
 /* ───────────── helpers ───────────── */
 
@@ -27,7 +27,7 @@ function createClient() {
 
   // 3 — patch package.json (idempotent but explicit)
   const pkgFile = path.join(root, 'package.json');
-  const pkg     = JSON.parse(readFileSync(pkgFile, 'utf8'));
+  const pkg = JSON.parse(readFileSync(pkgFile, 'utf8'));
   pkg.dependencies['react-router-dom'] = '^6';
   writeFileSync(pkgFile, JSON.stringify(pkg, null, 2));
 
@@ -67,21 +67,38 @@ export default function App() {
   );
 }`);
 
-  write('routes/Home.tsx', 'export default () => <h1>Home</h1>;');
+  write('routes/Home.tsx', `
+    import React , {useState} from 'react'
+    import { Link , useNavigate , useParams } from 'react-router-dom';
+    export default function Home() {
+    const To = useNavigate();
+  return (
+    <div>
+        <h1>Home</h1>
+    </div>
+  )
+}
+    
+    `);
 
-  write('routes/About.tsx', String.raw`import { Outlet, Link } from 'react-router-dom';
-export default () => <>
-  <h1>About</h1>
-  <nav>
-    <Link to="services">Services</Link> | <Link to="history">History</Link>
-  </nav>
-  <Outlet/>
-</>;`);
+  write('routes/About.tsx', String.raw`
+    import React , {useState} from 'react'
+import { Link , useNavigate , useParams } from 'react-router-dom';
+export default function About() {
+    const To = useNavigate();
+  return (
+    <div>
+        <h1>About</h1>
+    </div>
+  )
+}
+    
+    `);
 
   write('routes/NotFound.tsx', String.raw`import { useLocation } from 'react-router-dom';
 export default () => {
   const { pathname } = useLocation();
-  return <p>No match for “{pathname}”.</p>;
+  return ( <div> <p>No match for “{pathname}”.</p> </div>);
 };`);
 }
 
@@ -103,7 +120,7 @@ function createServer() {
 
   // 2. dependencies
   const pkgPath = path.join(serverPath, 'package.json');
-  const pkg     = JSON.parse(readFileSync(pkgPath, 'utf8'));
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
 
   pkg.dependencies = {
     express: '5.0.1',
@@ -172,7 +189,7 @@ app.listen(port, () => {
 });
 `;
 
-writeFileSync('src/index.ts', tsStub);
+  writeFileSync('src/index.ts', tsStub);
 
 
   // 5. nodemon
