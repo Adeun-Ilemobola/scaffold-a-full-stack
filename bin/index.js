@@ -186,7 +186,7 @@ const main = async ()=>{
         console.log('database conencted');
     }
     catch(err){
-        console.log(\`ERROR in conencting: ${err}\`)
+        console.log(\`ERROR in connecting: \${err}\`);
     }
 }
 
