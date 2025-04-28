@@ -230,7 +230,7 @@ function createRootPackage(projectName, root) {
     description: '',
     type: 'commonjs',
     scripts: {
-      preinstall: "npm install --prefix client && npm install --prefix server",
+      preinstall: "(cd client  && npm install) && (cd server && npm install)",
       start: 'concurrently "npm run server" "npm run client"',
       server: 'cd server && npm start',
       client: 'cd client && npm run dev'
