@@ -230,7 +230,7 @@ function createRootPackage(projectName, root) {
     description: '',
     type: 'commonjs',
     scripts: {
-      preinstall: "(cd client  && npm install) && (cd server && npm install)",
+      preinstall: "cd client && npm install && cd ../server && npm install && cd ..",
       start: 'concurrently "npm run server" "npm run client"',
       server: 'cd server && npm start',
       client: 'cd client && npm run dev'
@@ -289,7 +289,7 @@ function createProject(name) {
   createReadme(name, root);
 
   console.log(`\n✅  Project “${name}” created.`);
-  console.log(`Next steps:\n  cd ${name}\n  npm install && cd client && npm install && cd ../server && npm install\n  npm start`);
+  console.log(`Next steps:\n  cd ${name}\n  npm install && (cd client && npm install && cd ../server && npm install)\n  npm start`);
 }
 
 /* ─────────── CLI wiring ─────────── */
